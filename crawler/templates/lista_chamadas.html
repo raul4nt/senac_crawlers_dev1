@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Chamadas Públicas</title>
+</head>
+<body>
+    <h1>Lista de Chamadas Públicas</h1>
+    <table>
+        <tr>
+            <th>Nome</th>
+            <th>Data de Publicação</th>
+            <th>Data de Fim</th>
+            <th>Fonte</th>
+            <th>Valor Máximo</th>
+            <th>Situação</th>
+        {% comment %} </tr>
+        {% for chamada in chamadas %}
+        <tr>
+            <td>{{ chamada.nome }}</td>
+            <td>{{ chamada.data_publicacao }}</td>
+            <td>{{ chamada.data_fim }}</td>
+            <td>{{ chamada.fonte.url }}</td>
+            <td>{{ chamada.valor_maximo }}</td>
+            <td>{{ chamada.situacao }}</td>
+        </tr> {% endcomment %}
+        {% comment %} {% endfor %} {% endcomment %}
+    </table>
+</body>
+</html>
