@@ -1,14 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-import psycopg2
-
-DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres.akerwwnultjhmvdixfmm",
-    "password": "senaccrawlerbr1234",
-    "host": "aws-0-sa-east-1.pooler.supabase.com",
-    "port": "6543",
-}
+from datetime import datetime
 
 def fundect_edital_titles_and_links():
     url = "https://www.fundect.ms.gov.br/category/chamadas-abertas/"
@@ -41,9 +33,14 @@ def fundect_edital_titles_and_links():
                     
                     # Exibindo o título e link no console
                     print(f"Título: {edital_title}, Link: {edital_link}")
-                    
-                    # Inserir no banco de dados
-                    insert_into_database(edital_title, None, edital_link, None, None)
+
+                    # Obtém a descrição e as datas do edital
+                    descricao = "Descrição não disponível"  # Ajuste conforme necessário
+                    vencimento = "2024-11-30"  # Exemplo; ajuste conforme necessário
+                    data_publicacao = datetime.now().date()  # Data atual
+
+                    # Envia para a API
+                    insert_into_api(edital_title, descricao, edital_link, vencimento, data_publicacao)
             else:
                 print("Lista de editais não encontrada.")
         else:
@@ -52,37 +49,29 @@ def fundect_edital_titles_and_links():
     except requests.RequestException as e:
         print(f"Erro ao acessar a página Fundect: {e}")
 
+def insert_into_api(titulo, descricao, link, vencimento, data_publicacao):
+    api_url = "https://senac-crawlers.onrender.com/api/editais/"
+    data = {
+        "nome_banca": "Fundect",
+        "titulo": titulo,
+        "valor": 0.0,  # Ajuste se houver um valor específico
+        "descricao": descricao,
+        "link": link if link.startswith('http') else f"https://www.fundect.ms.gov.br{link}",
+        "img_logo": None,  # Adicione o logo se necessário
+        "vencimento": vencimento,
+        "prazo_execucao": None,  # Ajuste conforme necessário
+        "valor_global": 0.0,  # Ajuste se houver um valor específico
+        "valor_estimado": 0.0,  # Ajuste se houver um valor específico
+        "valor_maximo": 0.0,  # Ajuste se houver um valor específico
+        "data_publicacao": data_publicacao.isoformat()  # Converte para formato ISO
+    }
 
-def insert_into_database(titulo, descricao, link, data_publicacao, vencimento):
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        nome_banca = "Fundect"
-        valor = 0.0
-        prazo_execucao = None
-        valor_global = 0.0
-        valor_estimado = 0.0
-        valor_maximo = 0.0
+        response = requests.post(api_url, json=data)
+        response.raise_for_status()
+        print("Dados inseridos na API com sucesso.")
 
-        insert_query = """
-            INSERT INTO edital (nome_banca, titulo, valor, descricao, link, 
-            id_site, img_logo, vencimento, prazo_execucao, valor_global, 
-            valor_estimado, valor_maximo, data_publicacao)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
-        """
-        cursor.execute(insert_query, (nome_banca, titulo, valor, descricao, link,
-                                       None, None, vencimento, prazo_execucao,
-                                       valor_global, valor_estimado, valor_maximo, 
-                                       None))
-
-        conn.commit()
-        print("Dados inseridos com sucesso.")
-    
-    except Exception as e:
-        print(f"Erro ao inserir dados no banco de dados: {e}")
-    
-    finally:
-        cursor.close()
-        conn.close()
+    except requests.RequestException as e:
+        print(f"Erro ao inserir dados na API: {e} - {response.text if 'response' in locals() else ''}")
 
 fundect_edital_titles_and_links()

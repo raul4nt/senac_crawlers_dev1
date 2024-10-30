@@ -1,19 +1,13 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options  # Importar Options
+from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import psycopg2
+import requests
 
-DB_CONFIG = {
-    "dbname": "postgres",
-    "user": "postgres.akerwwnultjhmvdixfmm",
-    "password": "senaccrawlerbr1234",
-    "host": "aws-0-sa-east-1.pooler.supabase.com",
-    "port": "6543",
-}
+API_URL = "https://senac-crawlers.onrender.com/api/editais/"  # Ajuste para o endpoint correto
 
 def fapergs_edital_titles_and_links():
     # Configurações do Chrome para rodar em modo headless
@@ -49,8 +43,8 @@ def fapergs_edital_titles_and_links():
 
             print(f"Título: {edital_title}, Link: {edital_link}")
 
-            # Inserir no banco de dados
-            insert_into_database(edital_title, None, edital_link, None, None)
+            # Inserir na API
+            insert_into_api(edital_title, None, edital_link, None, None)
 
     except Exception as e:
         print(f"Erro ao acessar a página Fapergs: {e}")
@@ -58,39 +52,32 @@ def fapergs_edital_titles_and_links():
     finally:
         driver.quit()
 
-def insert_into_database(titulo, descricao, link, data_publicacao, vencimento):
+def insert_into_api(titulo, descricao, link, data_publicacao, vencimento):
+    payload = {
+        "nome_banca": "Fapergs",
+        "titulo": titulo,
+        "valor": 0.0,
+        "descricao": descricao,
+        "link": link,
+        "img_logo": None,
+        "vencimento": vencimento,
+        "prazo_execucao": None,
+        "valor_global": 0.0,
+        "valor_estimado": 0.0,
+        "valor_maximo": 0.0,
+        "data_publicacao": None  # Ajuste se você tiver essa informação
+    }
+
     try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        nome_banca = "Fapergs"
-        valor = 0.0
-        prazo_execucao = None
-        valor_global = 0.0
-        valor_estimado = 0.0
-        valor_maximo = 0.0
+        response = requests.post(API_URL, json=payload)
+        response.raise_for_status()
+        print("Dados inseridos na API com sucesso.")
+    except requests.RequestException as e:
+        print(f"Erro ao inserir dados na API: {e}")
 
-        insert_query = """
-            INSERT INTO edital (nome_banca, titulo, valor, descricao, link, 
-            id_site, img_logo, vencimento, prazo_execucao, valor_global, 
-            valor_estimado, valor_maximo, data_publicacao)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
-        """
-        cursor.execute(insert_query, (nome_banca, titulo, valor, descricao, link,
-                                       None, None, vencimento, prazo_execucao,
-                                       valor_global, valor_estimado, valor_maximo, 
-                                       None))
-
-        conn.commit()
-        print("Dados inseridos com sucesso.")
-    
-    except Exception as e:
-        print(f"Erro ao inserir dados no banco de dados: {e}")
-    
-    finally:
-        cursor.close()
-        conn.close()
-
+# Chamada da função para obter títulos e links dos editais
 fapergs_edital_titles_and_links()
+
 
 
 # O uso do Selenium neste site se faz necessário porque o conteúdo dos editais é carregado dinamicamente via 
